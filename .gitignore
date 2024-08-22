@@ -2,3 +2,4 @@
 *.npy
 data/
 *.h5
+biomass_estimation/

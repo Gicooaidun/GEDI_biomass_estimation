@@ -18,7 +18,7 @@ import argparse
 np.seterr(divide = 'ignore') 
 
 # Define the nodata values for each data source
-NODATAVALS = {'S2_bands' : 0, 'BM': -9999.0} # TODO changed
+NODATAVALS = {'S2_bands' : 0, 'BM': -9999.0}
 
 ############################################################################################################################
 # Helper functions
