@@ -49,7 +49,7 @@ S2_attrs = {'bands' : {'B01': np.uint16, 'B02': np.uint16, 'B03': np.uint16, 'B0
             }
 
 # Biomass (BM) attributes and their corresponding data types
-BM_attrs = {'bm': np.float32, 'std': np.float32} # TODO check data types
+BM_attrs = {'bm': np.float32, 'std': np.float32}
 
 NODATAVALS = {'S2' : 0, 'BM': -9999.0}
 
@@ -103,8 +103,7 @@ def modify_GEDI_data(GEDI) :
     """
     
     # 1) Remove columns
-    # columns_to_remove = ['doy_cos', 'doy_sin', 'lat_cos', 'lat_sin', 'lon_cos', 'lon_sin', 'beam'] #changed
-    columns_to_remove = ['beam'] #TODO add other unnecessary columns
+    columns_to_remove = ['beam'] #add other unnecessary columns
     """" 
     ['pft_class', 'region_cla', 'leaf_off_f', 'urban_prop', 'agbd',
        'agbd_se', 'beam', 'elev_lowes', 'lat_lowest', 'lon_lowest',
@@ -165,8 +164,7 @@ def load_GEDI_data(path_gedi, tile_geom, tile_name) :
     """
 
     # Load the data contained in the bounding box of the tile
-    GEDI = gpd.read_file(path_gedi, engine = 'pyogrio', bbox = tile_geom.bounds, rows = None) #TODO change rows to None
-
+    GEDI = gpd.read_file(path_gedi, engine = 'pyogrio', bbox = tile_geom.bounds, rows = None)
     # And further filter, to have only the data that intersects the tile
     GEDI = GEDI[GEDI.intersects(tile_geom)]
 
@@ -340,7 +338,7 @@ def get_sentinel2_patch(transform, processed_bands, footprint, patch_size, s2_pr
     patch_data['bands'] = np.array([patch_bands[attr] for attr in S2_attrs['bands'].keys()])
 
     if debug:
-        # TODO FOR DEBUGGING PURPOSES, REMOVE
+        # FOR DEBUGGING PURPOSES
         west, north = rs.transform.xy(transform, x - x_offset -0.5, y - y_offset-0.5)
         east, south = rs.transform.xy(transform, x + x_offset+0.5, y + y_offset+0.5)
         patch_transform = rs.transform.from_bounds(west, south, east, north, patch_size[0], patch_size[1])
@@ -480,28 +478,10 @@ def get_tile(data, s2_transform, upsampling_shape, data_source, data_attrs) :
     res = {}
     for data_attr in data_attrs.keys() :
         res[data_attr] = crop_and_pad_arrays(data[data_attr], ul_row, lr_row, ul_col, lr_col)
-        # print("data_attr")
-        # print(data_attr)
-        # print("res")
-        # print(res[data_attr].shape)
-        # print(res[data_attr])
-        # print(res[data_attr].dtype)
-        # print(np.isnan(res[data_attr]).any())
-        # print("upsampling_shape")
-        # print(upsampling_shape)
 
-        # # Resample to 10m resolution if necessary
-        # res[data_attr] = resize(res[data_attr], upsampling_shape, order = 3, preserve_range = True).astype(data_attrs[data_attr])
-        # Resample to 10m resolution if necessary
-        # print(data_attrs)
-        # print(data_attrs[data_attr])
         if data_source == 'BM' :
             res[data_attr] = upsampling_with_nans(res[data_attr].astype(data_attrs[data_attr]), upsampling_shape, NODATAVALS[data_source],3).astype(data_attrs[data_attr])
 
-        # res[data_attr] = resize(res[data_attr], upsampling_shape, order = 1, preserve_range = True).astype(data_attrs[data_attr])
-
-        # print(res[data_attr].shape)
-        # print(res[data_attr])
 
         assert res[data_attr].shape == upsampling_shape, f'{data_source} | {data_attr} | {data[data_attr].shape} | {res[data_attr].shape} | {upsampling_shape} | {ul_row} | {lr_row} | {ul_col} | {lr_col}'
 
@@ -544,8 +524,6 @@ def get_patch(tile, footprint, transform, patch_size, data_source, data_attrs) :
         x_offset, y_offset = (patch_size[0] - 1) // 2, (patch_size[1] - 1) // 2
         # Crop the tile to the patch
         for attr, data in tile.items() :
-            # print("data")
-            # print(data)
             patch = data[x - x_offset : x + x_offset + 1, y - y_offset : y + y_offset + 1]
             assert patch.shape == (patch_size[0], patch_size[1]), f'{data_source} Patch shape is {patch.shape}, should be {patch_size} | attr {attr} | data shape {data.shape}'
             patch_bands[attr] = patch
@@ -631,14 +609,10 @@ def process_S2_tile(product, path_s2) :
         for band in bands :
             # Read the band data
             with rs.open(join(path_to_img_data, f'R{res}', f'{tname}_{date}_{band}_{res}.tif')) as src :
-                # print(band)
                 band_data = src.read(1)
                 transform = src.transform
-                # print(transform)
                 crs = src.crs
-                # print(crs)
                 bounds = src.bounds
-                # print(bounds)
             # Turn the band into a 2d array
             if len(band_data.shape) == 3 : band_data = band_data[0, :, :]
 
@@ -653,9 +627,6 @@ def process_S2_tile(product, path_s2) :
             # Upsample the band to a 10m resolution if necessary
             else :
                 # Order 1 indicates nearest interpolation, and order 3 indicates cubic interpolation                
-                # band_data = resize(band_data, upsampling_shape, order = 1 if band == 'SCL' else 3, preserve_range = True)
-                # band_data = band_data.astype(S2_attrs['bands'][band])
-
                 band_data = upsampling_with_nans(band_data, upsampling_shape, NODATAVALS['S2'], 1 if band == 'SCL' else 3).astype(S2_attrs['bands'][band])
 
             # Correct the radiometric offset for data post 25th January 2022
@@ -780,7 +751,7 @@ def setup_output_files(output_path, output_fname, i, N) :
         print(f'Initializing output file for split {i}/{N}.')
 
 
-def initialize_results(BM_flag) : # TODO modify
+def initialize_results(BM_flag) :
     """
     This function initializes the results placeholder.
 
@@ -826,7 +797,7 @@ def update_results(s2_data, gedi_data, bm_data, s2_footprint_data, gedi_footprin
     return s2_data, gedi_data, bm_data
 
 
-def save_results(s2_data, gedi_data, bm_data, tile_name, chunk_size, file) : # TODO modify
+def save_results(s2_data, gedi_data, bm_data, tile_name, chunk_size, file) :
     """
     This function: 1) identifies the PID of the current process; 2) opens the corresponding output file; and 3) appends the
     results to the output file, group by group, and attribute by attribute.
@@ -878,7 +849,7 @@ def save_results(s2_data, gedi_data, bm_data, tile_name, chunk_size, file) : # T
             dset[slice(-chunk_size, None, None)] = np.array(data).astype(dset.dtype)
 
 
-def init_h5_group(file, tile_name, patch_size, chunk_size, BM_flag) : # TODO modify
+def init_h5_group(file, tile_name, patch_size, chunk_size, BM_flag) :
     """
     For a given (opened) empty hdf5 `file`, create a group for the current `tile_name`, and initialize the datasets for the
     Sentinel-2, Sentinel-1 and GEDI data. In particular, this is the structure of the datasets:
@@ -899,11 +870,6 @@ def init_h5_group(file, tile_name, patch_size, chunk_size, BM_flag) : # TODO mod
                     > (group) BM
                             > (dataset) bm, N x 15 x 15 x 1 (uint8)
                             > (dataset) std, N x 15 x 15 x 1 (float32)
-                    
-                    # TODO : replace BM everywhere in this script by :
-                    > (group) ICESat
-                            > (dataset) agb, N x 5 x 5 x 1 (TODO dtype) 
-                            > (dataset) se, N x 5 x 5 x 1 (TODO dtype)
                                         
     """
 
@@ -961,7 +927,6 @@ def load_BM_data(path_bm, tile_name) :
 
     with rs.open(join(path_bm, f'{tile_name}_cropped_mosaic.tif')) as src: #changed
         BM['bm'] = src.read(1)
-        # print(np.isnan(BM['bm']).any())
         BM['std'] = src.read(2)
         BM['transform'] = src.transform
 

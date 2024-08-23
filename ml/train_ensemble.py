@@ -22,15 +22,15 @@ class Args:
         self.epochs = 1
         self.lr = 0.001
         self.optimizer = optim.Adam
-        self.name = 'train_ensemble_v1'
+        self.name = 'train_ensemble'
         self.train = True
         self.patience = 6
 
 args = Args()
 # Initialize an empty dictionary to store the data
 data = {'train': [], 'val': [], 'test': []} 
-path_h5 = '/scratch2/biomass_estimation/code/ml/data/data_no_outliers/'
-fnames = ['data_no_outliers_0-5.h5', 'data_no_outliers_1-5.h5', 'data_no_outliers_2-5.h5', 'data_no_outliers_3-5.h5', 'data_no_outliers_4-5.h5']
+path_h5 = 'dataset'
+fnames = ['data_0-5.h5', 'data_1-5.h5', 'data_2-5.h5', 'data_3-5.h5', 'data_4-5.h5']
 
 
 all_tiles = []
@@ -47,14 +47,7 @@ data['val'].extend(val_tile)
 data['test'].extend(test_tile)
 data['train'].extend(train_tiles)
 
-# print("training tiles: ", len(data['train']))
-# print(data['train'])
-# print("validation tiles: ", len(data['val']))
-# print(data['val'])
-# print("testing tiles: ", len(data['test']))
-# print(data['test'])
-# Pickle the DataFrame and save it to a file
-with open('/scratch2/biomass_estimation/code/ml/data/mapping.pkl', 'wb') as f:
+with open('dataset/mapping.pkl', 'wb') as f:
     pickle.dump(data, f)
 
 ###################################################
@@ -134,10 +127,10 @@ def train(model, epochs = 10, modelname = 'overwritten_ensemble', patience = 5):
     optimizer = args.optimizer(model.parameters(), lr=args.lr)
 
     mode = 'train'
-    ds_training = GEDIDataset({'h5':path_h5, 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+    ds_training = GEDIDataset({'h5': path_h5, 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
     trainloader = DataLoader(dataset = ds_training, batch_size = 512, shuffle = True, num_workers = 8)
     mode = 'val'
-    ds_validation = GEDIDataset({'h5':path_h5, 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+    ds_validation = GEDIDataset({'h5': path_h5, 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
     validloader = DataLoader(dataset = ds_validation, batch_size = 512, shuffle = False, num_workers = 8)
 
     min_valid_loss = float('inf')
@@ -160,7 +153,7 @@ def train(model, epochs = 10, modelname = 'overwritten_ensemble', patience = 5):
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-            # print(loss.item())
+
             if i%20==0:
                 # print(f'Epoch {epoch+1} \t Batch {i} \t Training Loss: {train_loss / i}')
                 wandb.log({'train_loss': train_loss / i})
@@ -175,7 +168,6 @@ def train(model, epochs = 10, modelname = 'overwritten_ensemble', patience = 5):
                 inputs, targets = inputs.cuda(), targets.cuda()
             
             outputs = model(inputs)
-            # loss = criterion(outputs[:,:,7,7].squeeze(),targets)
             loss = RMSE()(outputs[:,:,7,7].squeeze(), targets)
             valid_loss += loss.item()
             if i%20==0:
@@ -203,7 +195,7 @@ def train(model, epochs = 10, modelname = 'overwritten_ensemble', patience = 5):
 
         # print(f"Epoch {epoch+1} completed")
 
-def test(model_architecture, model_path = 'models/model3.pth', ensemble_models = []):
+def test(model_architecture, model_path = 'models/modelname.pth', ensemble_models = []):
     if model_architecture == 'SimpleFCN':
         model = SimpleFCN()
         model.load_state_dict(torch.load(model_path))
@@ -224,7 +216,7 @@ def test(model_architecture, model_path = 'models/model3.pth', ensemble_models =
         model = model.cuda()
 
     mode = 'test'
-    ds_testing = GEDIDataset({'h5':path_h5, 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+    ds_testing = GEDIDataset({'h5':path_h5, 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
     testloader = DataLoader(dataset = ds_testing, batch_size = 256, shuffle = False, num_workers = 8)
 
     # Testing loop

@@ -9,3 +9,6 @@ This repository contains a machine learning pipeline designed to create models t
 - **statistics**: Provides tools and scripts for analyzing the data before proceeding with model training.
 
 For more information on the individual steps, refer to the READMEs in the folders.
+
+### Additional notes:
+In this project the variable 'bm' refers to ICESat-2 biomass.

@@ -29,7 +29,7 @@ def custom_reproject(src_path, output_path, dst_crs):
         })
 
         # Specify the path to the merged_mosaic folder
-        output_folder = '/scratch3/biomass_estimation_dominik_senti/github/statistics/reprojected_icesat_to_gedi_crs'
+        output_folder = 'reprojected_icesat_to_gedi_crs'
 
         # Check if the merged_mosaic folder exists
         if not os.path.exists(output_folder):
@@ -58,7 +58,7 @@ def custom_reproject(src_path, output_path, dst_crs):
 
 
 # Specify the path to the folder containing the tif files
-folder_path = '/scratch3/biomass_estimation_dominik_senti/github/data/icesat_data'
+folder_path = 'data/icesat_data'
 
 # Iterate over the tif files in the folder
 for file_name in os.listdir(folder_path):
@@ -70,4 +70,4 @@ for file_name in os.listdir(folder_path):
 
         
         # Perform the reproject on the tif file
-        custom_reproject(file_path, f'/scratch3/biomass_estimation_dominik_senti/github/statistics/reprojected_icesat_to_gedi_crs/{file_name[:-4]}_reprojected.tif', dest_crs)
+        custom_reproject(file_path, f'reprojected_icesat_to_gedi_crs/{file_name[:-4]}_reprojected.tif', dest_crs)

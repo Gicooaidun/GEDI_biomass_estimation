@@ -1,5 +1,15 @@
 *.tif
 *.npy
-data/
+*.prj
+*.sbn
+*.sbx
+*.shp
+*.shx
+*.gpkg
+*.dbf
+*.qgz
+*.cpg
+*.geojson
+*.DS_Store
 *.h5
 biomass_estimation/

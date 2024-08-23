@@ -231,7 +231,7 @@ class GEDIDataset(Dataset):
         # Define the data to use
         self.latlon = args.latlon
         self.bands = args.bands
-        self.bm = args.bm # TODO changed
+        self.bm = args.bm
         self.patch_size = args.patch_size
 
         # Define the learning procedure
@@ -308,7 +308,7 @@ class GEDIDataset(Dataset):
         else: data.extend([lat_cos[..., np.newaxis], lat_sin[..., np.newaxis]])
         
         # BM data
-        if self.bm: # TODO done
+        if self.bm:
             bm = f[tile_name]['BM']['bm'][idx, self.center - self.window_size : self.center + self.window_size + 1, self.center - self.window_size : self.center + self.window_size + 1]
             bm = normalize_data(bm, self.norm_values['BM']['bm'], self.norm_strat, NODATAVALS['BM'])
             
@@ -337,18 +337,18 @@ if __name__ == '__main__' :
     args = parser.parse_args()
     args.latlon = True
     args.bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
-    args.bm = True # TODO changed
+    args.bm = True
     args.patch_size = [15,15]
     args.norm_strat = 'pct'
     args.norm = False
 
-    fnames = ['data_nonan_0-5.h5', 'data_nonan_1-5.h5', 'data_nonan_2-5.h5', 'data_nonan_3-5.h5', 'data_nonan_4-5.h5'] # TODO changed
+    fnames = ['data_0-5.h5', 'data_1-5.h5', 'data_2-5.h5', 'data_3-5.h5', 'data_4-5.h5']
     
     for mode in ['train', 'val', 'test'] :
         print('Processing {} data...'.format(mode))
         
-         # TODO CHANGE THESE
-        ds = GEDIDataset({'h5':'/scratch2/biomass_estimation/code/ml/data', 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '//scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+        
+        ds = GEDIDataset({'h5':'dataset', 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
 
         # Create a DataLoader instance
         data_loader = DataLoader(dataset = ds,
@@ -362,12 +362,6 @@ if __name__ == '__main__' :
         i = 0
         for batch_samples in data_loader:
             images, targets = batch_samples
-            # if i == 0 : 
-                
-            #     # print(images)
-            #     # print(targets)
-            # i += 1
-            
             
             # Check for NaN values
             if torch.isnan(images).any() : 

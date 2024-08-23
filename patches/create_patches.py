@@ -19,7 +19,7 @@ Execution:
                                 --N
 
 
-python3 create_patches.py --year 2019 --patch_size 15 15 --chunk_size 1 --output_fname "test" --BM --i 20 --N 50 --tilenames /scratch2/biomass_estimation/code/dataset_creation/tile_names.txt
+python3 create_patches.py --year 2019 --patch_size 15 15 --chunk_size 1 --output_fname "test" --BM --i 20 --N 50 --tilenames tile_names.txt
 
 
 
@@ -40,8 +40,8 @@ import numpy as np
 
 from helper_patches import *
 
-# Absolute path to `S2_tiles_Siberia_all.geojson` file
-local_path_shp = join('/scratch3', 'biomass_estimation_dominik_senti', 'github', 'data', 'S2_tiles_Siberia_polybox', 'S2_tiles_Siberia_all.geojson')
+# path to `S2_tiles_Siberia_all.geojson` file
+local_path_shp = join('..', 'data', 'S2_tiles_Siberia_polybox', 'S2_tiles_Siberia_all.geojson')
 
 ############################################################################################################################
 # Helper functions
@@ -62,10 +62,10 @@ def setup_parser() :
     # Paths arguments
     parser.add_argument('--tilenames', help = 'Path to a .txt file listing the S2 tiles to consider.')
     parser.add_argument('--path_shp', help = 'Path to the Sentinel-2 index shapefile.', default = local_path_shp)
-    parser.add_argument('--path_gedi', help = 'Path to the GEDI data directory.', default = '/scratch3/biomass_estimation_dominik_senti/github/data/GEDI_data/L4A_Siberia.shp')
+    parser.add_argument('--path_gedi', help = 'Path to the GEDI data directory.', default = '../data/GEDI_data/L4A_Siberia.shp')
     parser.add_argument('--path_s2', help = 'Path to the Sentinel-2 data directory.', default = '/scratch3/Siberia')
-    parser.add_argument('--path_bm', help = 'Path to the BM (ICESat) data.', default = '/scratch3/biomass_estimation_dominik_senti/github/data_preprocessing/cropped_mosaic')
-    parser.add_argument('--output_path', help = 'Path to the output directory.', default = '/scratch2/biomass_estimation/temp')
+    parser.add_argument('--path_bm', help = 'Path to the BM (ICESat) data.', default = '../data_preprocessing/cropped_mosaic')
+    parser.add_argument('--output_path', help = 'Path to the output directory.', default = '../ml/dataset')
     parser.add_argument('--output_fname', help = 'Name of the output file.', default = '')
 
     # Flags for the data to extract
@@ -87,10 +87,6 @@ def setup_parser() :
 
 
 def list_s2_tiles(tilenames, grid_df, path_s2) :
-    # print(f'Listing S2 tiles from {path_s2}.')
-    # print(f'Using shapefile {grid_df}.')
-    # print(grid_df["geometry"].values[0])
-    # print(f'Using tilenames file {tilenames}.')
     """
     This function performs two tasks: 1) return the list of Sentinel-2 tile names for which we want to extract patches (this
     is done either by listing the files in the Sentinel-2 data directory, or by reading a .txt file if one is provided); and
@@ -108,7 +104,6 @@ def list_s2_tiles(tilenames, grid_df, path_s2) :
     # Option 1 : list them from the folder of downloaded tiles
     if tilenames is None: 
         all_files = glob.glob(join(path_s2, f'*MSI*.zip'))
-        # tile_names = [basename(f).strip('.zip') for f in all_files] 
         tile_names = [basename(f).strip('.zip')[39:44] for f in all_files]
     
     # Option 2 : list them from the .txt file
@@ -117,7 +112,6 @@ def list_s2_tiles(tilenames, grid_df, path_s2) :
             tile_names = [tile_name.strip().strip('.zip') for tile_name in f.readlines()]
     
     # Get the geometries from the Sentinel-2 grid shapefile
-    # tile_geoms = [grid_df[grid_df['Name'] == tile_name]["geometry"].values[0] for tile_name in tile_names] 
     tile_geoms = [grid_df[grid_df['Name'] == tile_name]["geometry"].values[0] for tile_name in tile_names]
     # print(f'Found {len(tile_geoms)} tiles to process.')
     # print(tile_geoms)
@@ -169,8 +163,6 @@ def extract_patches(tile_name, year, tile_geom, patch_size, chunk_size, path_ged
         for s2_prod, footprints in groups :
 
             print(f'>> Extracting patches for product {s2_prod}.')
-            # print(f'>> {len(footprints)} footprints to process.')
-            # print(footprints.head())
 
             # Unzip the S2 L2A product if it hasn't been done 
             unzipped_path = join(path_s2,'scratch2','gsialelli','S2_L2A', 'Siberia')
@@ -204,7 +196,7 @@ def extract_patches(tile_name, year, tile_geom, patch_size, chunk_size, path_ged
             assert crs_1 == crs_2 == footprints.crs, "CRS mismatch."
 
 
-            # Process the BM tile corresponding to the S2 product # TODO modify
+            # Process the BM tile corresponding to the S2 product
             if BM_flag: bm_tile = get_tile(bm_raw, transform, upsampling_shape, 'BM', BM_attrs)
 
             # Initialize results placeholder
@@ -217,12 +209,10 @@ def extract_patches(tile_name, year, tile_geom, patch_size, chunk_size, path_ged
             for footprint in footprints.itertuples() :
 
                 # Extract the Sentinel-2 data
-                # print('transform in create_patches')
-                # print(transform)
                 s2_footprint_data = get_sentinel2_patch(transform, processed_bands, footprint, patch_size, s2_prod)
                 if s2_footprint_data is None: continue
 
-                # Extract the BM data # TODO modify
+                # Extract the BM data
                 if BM_flag: bm_footprint_data = get_patch(bm_tile, footprint, transform, patch_size, 'BM', BM_attrs)
                 else: bm_footprint_data = None
 
@@ -236,8 +226,6 @@ def extract_patches(tile_name, year, tile_geom, patch_size, chunk_size, path_ged
                 num_patches = len(gedi_data['agbd'])
 
                 #outlier exclusion
-                # print("legth of gedi_data[agbd]", len(gedi_data['agbd']))
-                # print(gedi_data['agbd'])
                 if gedi_data['agbd'][0] < 500:
                     if (num_patches % chunk_size) == 0 :
                         save_results(s2_data, gedi_data, bm_data, tile_name, chunk_size, file)

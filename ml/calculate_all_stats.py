@@ -7,9 +7,6 @@ from sklearn.model_selection import train_test_split
 
 def process(tiles_to_process, output_fname):  
     print("creating file " + output_fname)
-    # print(f'Processing the files: {fnames}')
-    # print(f'Processing the tiles: {tiles_to_process}')
-
     # Initialize the statistics
     stats = init_stats()
 
@@ -109,7 +106,7 @@ def process(tiles_to_process, output_fname):
 
 if __name__ == '__main__':
     # Path to the h5 files created in the create_patches.py script
-    path_h5 = ''
+    path_h5 = 'dataset/'
     num_patches_sim = 1000
     parallel = False
     combine = False
@@ -137,13 +134,6 @@ if __name__ == '__main__':
         data['test'].extend(test_tile)
         data['train'].extend(train_tiles)
 
-        # print("training tiles: ", len(data['train']))
-        # print(data['train'])
-        # print("validation tiles: ", len(data['val']))
-        # print(data['val'])
-        # print("testing tiles: ", len(data['test']))
-        # print(data['test'])
-
         if data['train'] in train_all or data['val'] in val_all or data['test'] in test_all:
             continue
         train_all.append(data['train'])
@@ -151,8 +141,8 @@ if __name__ == '__main__':
         test_all.append(data['test'])
 
         ####################################################
-
-        fnames = ['data_no_outliers_0-5.h5', 'data_no_outliers_1-5.h5', 'data_no_outliers_2-5.h5', 'data_no_outliers_3-5.h5', 'data_no_outliers_4-5.h5']
+        # the filenames of the h5 files in the ml/dataset/ folder
+        fnames = ['data_0-5.h5', 'data_1-5.h5', 'data_2-5.h5', 'data_3-5.h5', 'data_4-5.h5']
         process(tiles_to_process=data['train'], output_fname=f'_{str(i)}_train')
         process(tiles_to_process=data['val'], output_fname=f'_{str(i)}_val')
         process(tiles_to_process=data['test'], output_fname=f'_{str(i)}_test')

@@ -1,10 +1,10 @@
 import json
 
 # Path to the GeoJSON file
-geojson_file = '/scratch2/biomass_estimation/code/notebook/S2_tiles_Siberia_polybox/S2_tiles_Siberia_above_GEDI.geojson'
+geojson_file = '../../data/S2_tiles_Siberia_polybox/S2_tiles_Siberia_above_GEDI.geojson'
 
 # Path to the output text file
-output_file = '/scratch2/biomass_estimation/code/ml/inference/tile_names_inference.txt'
+output_file = 'tile_names_inference.txt'
 
 # Open the GeoJSON file
 with open(geojson_file) as file:

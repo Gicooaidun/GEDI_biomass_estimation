@@ -14,19 +14,20 @@ from affine import Affine
 from pyproj import Transformer
 import torch
 import cv2
-sys.path.insert(1, '/scratch2/biomass_estimation/code/patches')
+sys.path.insert(1, '../../patches')
 from helper_patches import *
 from create_patches import *
 import h5py
+import matplotlib.pyplot as plt
 
 def setup_parser():
     parser = argparse.ArgumentParser(description="inference")
-    parser.add_argument("--path_icesat", type=str, default="/scratch2/biomass_estimation/code/notebook/cropped_mosaic_no_nan")
-    parser.add_argument("--tilenames", type=str, default="/scratch2/biomass_estimation/code/ml/inference/data_manipulation/tile_names_inference_all.txt")
-    parser.add_argument("--path_shp", type=str, default=os.path.join('/scratch2', 'biomass_estimation', 'code', 'notebook', 'S2_tiles_Siberia_polybox', 'S2_tiles_Siberia_all.geojson'))
+    parser.add_argument("--path_icesat", type=str, default="data_preprocessing/cropped_mosaic")
+    parser.add_argument("--tilenames", type=str, default="tile_names_inference_all.txt")
+    parser.add_argument("--path_shp", type=str, default=os.path.join('..', '..', 'data', 'S2_tiles_Siberia_polybox', 'S2_tiles_Siberia_all.geojson'))
     parser.add_argument("--path_s2", type=str, default="/scratch3/Siberia")
-    parser.add_argument("--norm_path", type=str, default="/scratch2/biomass_estimation/code/ml/data/normalization_values.pkl")
-    parser.add_argument("--model_path", type=str, default="/scratch2/biomass_estimation/code/ml/models")
+    parser.add_argument("--norm_path", type=str, default="../dataset/normalization_values.pkl")
+    parser.add_argument("--model_path", type=str, default="../models")
     parser.add_argument("--patch_size", type=int, default=277)
 
     args = parser.parse_args()
@@ -202,7 +203,21 @@ def normalize_bands(bands_data, norm_values, order, norm_strat, nodata_value = N
     return normalized
 
 def load_files(s2_prod, path_s2, path_icesat):
+    """
+    This function processes Sentinel-2 (S2) products by extracting, unzipping, reprojecting, and upsampling the data. 
+    It also loads corresponding ICESat-2 biomass data. 
 
+    Args:
+    - s2_prod (str): the Sentinel-2 product identifier to process.
+    - path_s2 (str): the path to the directory containing the S2 data.
+    - path_icesat (str): the path to the directory containing the ICESat-2 data.
+
+    Returns:
+    - s2_processed_bands (list): a list containing the processed S2 bands data.
+    - s2_transforms (list): a list of transformation matrices for the S2 data.
+    - s2_crs (list): a list of coordinate reference systems (CRS) for the S2 data.
+    - icesat_raws (list): a list containing the raw ICESat-2 biomass data corresponding to the S2 product.
+    """
     s2_processed_bands = []
     s2_transforms = []
     s2_crs = []
@@ -225,7 +240,6 @@ def load_files(s2_prod, path_s2, path_icesat):
 
     # for the unzipped files, find the .SAFE folder and process the tiles
     all_corresponding_s2_paths = glob.glob(f"{path_s2}/*{s2_prod}*")
-    # print(f'>> Unzipped and then found {all_corresponding_s2_paths}.')
 
     for total_s2_path in all_corresponding_s2_paths:
         if total_s2_path.endswith('.zip'):
@@ -245,8 +259,6 @@ def load_files(s2_prod, path_s2, path_icesat):
 
         # extract path and file name
         s2_folder_path, s2_file_name = os.path.split(total_s2_path)
-        # print(s2_folder_path)
-        # print(s2_file_name)
         if s2_file_name.endswith('.SAFE'):
             s2_file_name = s2_file_name[:-5]
         else:
@@ -279,13 +291,22 @@ def load_files(s2_prod, path_s2, path_icesat):
     icesat_raw = load_BM_data(path_bm=path_icesat, tile_name=s2_prod)
     icesat_raws.append(icesat_raw)
 
-    # print(len(s2_processed_bands))
-    # print(len(s2_transforms))
-    # print(len(s2_crs))
-    # print(len(icesat_raws))
     return s2_processed_bands, s2_transforms, s2_crs, icesat_raws
 
 def normalize(processed_bands, icesat_raw):
+    """
+    This function normalizes both the Sentinel-2 (S2) bands data and the ICESat-2 biomass data using pre-calculated
+        normalization values. 
+
+    Args:
+    - processed_bands (list): a list of processed Sentinel-2 bands data to be normalized.
+    - icesat_raw (list): a list of raw ICESat-2 biomass data to be normalized.
+
+    Returns:
+    - icesat_norm (list): a list containing the normalized ICESat-2 biomass data.
+    - s2_bands_dict (list): a list of dictionaries containing the normalized S2 bands data.
+    - s2_indices (list): a list of lists containing the indices of the bands in the order they were processed.
+    """
     icesat_norm = []
     s2_bands_dict = []
     s2_indices = []
@@ -293,28 +314,34 @@ def normalize(processed_bands, icesat_raw):
 
     with open(norm_path, mode = 'rb') as f:
                 norm_values = pickle.load(f)
-    # print("processed_bands keys ", processed_bands.keys())
-    # print("norm_values[S2_bands] keys", norm_values['S2_bands'].keys()) #we don't have SCL in the normalization values so not in the model...?
-    # print(norm_values.keys())
 
     norm_strat = "pct"
     for i in range(len(processed_bands)):
         icesat_temp = {}
         icesat_temp['bm'] = normalize_data(icesat_raw[0]['bm'], norm_values['BM']['bm'], norm_strat, nodata_value = -9999.0)
         icesat_temp['std'] = normalize_data(icesat_raw[0]['std'], norm_values['BM']['std'], norm_strat, nodata_value = -9999.0)
-        # icesat_temp['bm'] = normalize_data(icesat_raw[i]['bm'], norm_values['BM']['bm'], norm_strat, nodata_value = -9999.0)
-        # icesat_temp['std'] = normalize_data(icesat_raw[i]['std'], norm_values['BM']['std'], norm_strat, nodata_value = -9999.0)
         icesat_norm.append(icesat_temp)
 
         s2_bands_dict.append(normalize_bands(processed_bands[i], norm_values['S2_bands'], s2_order, norm_strat, nodata_value = 0))
         s2_indices.append([s2_order.index(band) for band in s2_bands_dict[i]])
     return icesat_norm, s2_bands_dict, s2_indices
-import numpy as np
-import matplotlib.pyplot as plt
 
 #######################################################
 # weight matrix functions
 def calculate_central_weight_matrix(patch):
+    """
+    This function calculates a central weight matrix for a given patch, 
+    where the weights are determined by the distance of each point in the patch to the central four quadrants.
+    The closer a point is to the center, the higher its weight, with weights normalized across each quadrant.
+
+    Args:
+    - patch (np.array): a 2D numpy array representing the patch for which the weight matrix is to be calculated. 
+        The patch is assumed to be square-shaped.
+
+    Returns:
+    - weight_matrix (np.array): a 2D numpy array of the same shape as the input patch, containing the calculated 
+        weights for each point in the patch.
+    """
     sizeOfPatch = patch.shape[0]
     half_patch_size = sizeOfPatch // 2
     distances = np.zeros((half_patch_size, half_patch_size, 4))
@@ -338,6 +365,18 @@ def calculate_central_weight_matrix(patch):
     return weight_matrix
 
 def calculate_edge_distances(patch):
+    """
+    This function calculates a matrix of distances from each point in a patch to the four edges (left, right, top, and bottom). 
+    The distances are normalized and scaled, with closer points to the edges having higher weights.
+
+    Args:
+    - patch (np.array): a 2D numpy array representing the patch for which the edge distances are to be calculated. 
+        The patch is assumed to be square-shaped.
+
+    Returns:
+    - normalized_distances (np.array): a 3D numpy array where the first two dimensions match the input patch, 
+        and the third dimension contains the normalized and scaled distances to each of the four edges (left, right, top, bottom).
+    """
     patch_size = patch.shape[0]
     distances = np.zeros((patch_size, patch_size, 4))
     
@@ -353,6 +392,32 @@ def calculate_edge_distances(patch):
     return normalized_distances*2
 
 def calculate_weight_matrix(patch, corner = 0, edge = 0):
+    """
+    This function calculates a weight matrix for a given patch, combining central weights and edge 
+    weights based on specified parameters. 
+    The weights are adjusted depending on whether the focus is on a corner or an edge of the patch.
+
+    Args:
+    - patch (np.array): a 2D numpy array representing the patch for which the weight matrix is to be calculated.
+    - corner (int): an integer specifying which corner of the patch should have full weight (1 by default). 
+                If set to 0, edge weights are used instead. Possible values:
+                0 - No corner emphasis, use edge weights
+                1 - Top-left corner
+                2 - Top-right corner
+                3 - Bottom-right corner
+                4 - Bottom-left corner
+    - edge (int): an integer specifying which edge of the patch should have increased weight when no corner is emphasized. 
+                This is only used if `corner` is set to 0. Possible values:
+                0 - No edge emphasis
+                1 - Left edge
+                2 - Top edge
+                3 - Right edge
+                4 - Bottom edge
+
+    Returns:
+    - weight_matrix (np.array): a 2D numpy array containing the calculated weights for each point in the patch.
+    """
+
     sizeOfPatch = patch.shape[0]
     half_patch_size = sizeOfPatch // 2
     
@@ -400,7 +465,6 @@ if __name__ == "__main__":
 
     #get arguments
     path_shp, tilenames, path_s2, path_icesat, norm_path, model_path, patch_size = setup_parser()
-    # print(patch_size)
     center = patch_size // 2
 
     # Create a weight matrix
@@ -501,32 +565,22 @@ if __name__ == "__main__":
             fwd = Affine.from_gdal(s2_transforms[t][2], s2_transforms[t][0], s2_transforms[t][1], s2_transforms[t][5], s2_transforms[t][3], s2_transforms[t][4])
             coordinate_transformer = Transformer.from_crs(s2_crs[t], 'epsg:4326')
             outputs.append(np.zeros((icesat['bm'].shape[0], icesat['bm'].shape[1], 2)))
-            # print("output shape ", outputs[t].shape)
+
             for i in range(center, icesat['bm'].shape[0], center+1):
-                # if i > 1000:
-                #     continue
                 for j in range(center, icesat['bm'].shape[1], center+1):
-                    # if j > 1000:
-                    #     continue
-                    # if i == center or j == center:
-                    #     print(f'>>> Inference for band {t+1}/{len(s2_bands)}, row {i}/{icesat["bm"].shape[0]}.')
                     data = []
                     s2_temp = s2_bands[t][i-center:i+center+1, j-center:j+center+1,:]
                     data.extend([s2_temp])
 
                     lat1, lon1 = fwd * (i, j)
-                    #print(lat1, lon1)
                     lat2, lon2 = coordinate_transformer.transform(lat1, lon1)
-                    #print(lat2, lon2)
                     lat_cos, lat_sin, lon_cos, lon_sin = encode_coords(lat2, lon2, (patch_size, patch_size))
                     data.extend([lat_cos[..., np.newaxis], lat_sin[..., np.newaxis], lon_cos[..., np.newaxis], lon_sin[..., np.newaxis]])
 
                     icesat_temp_bm = upsampled_icesat[t]['bm'][i-center:i+center+1, j-center:j+center+1, np.newaxis]
                     icesat_temp_std = upsampled_icesat[t]['std'][i-center:i+center+1, j-center:j+center+1, np.newaxis]
                     data.extend([icesat_temp_bm, icesat_temp_std])
-                    # for z in range(len(data)):
-                    #     print(data[z].shape)
-                    # print(len(data))
+
                     # Concatenate the data together
                     data = torch.from_numpy(np.concatenate(data, axis = -1).swapaxes(-1, 0)).to(torch.float)
                     with torch.no_grad():
@@ -569,7 +623,7 @@ if __name__ == "__main__":
         print("saving outputs for tile ", s2_prod)
         # Save the outputs as a .npy file
         outputs = np.moveaxis(outputs, 1, 2)
-        np.save(f'/scratch2/biomass_estimation/code/ml/inference/debugging/inference_output/inference_weighted_{s2_prod}.npy', outputs)
+        np.save(f'inference_output/inference_{s2_prod}.npy', outputs)
         del outputs
         del s2_bands
         del icesat_norm

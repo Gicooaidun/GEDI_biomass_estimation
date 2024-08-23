@@ -30,8 +30,8 @@ args = Args()
 torch.manual_seed(args.seed)
 # Initialize an empty dictionary to store the data
 data = {'train': [], 'val': [], 'test': []} 
-path_h5 = '/scratch2/biomass_estimation/code/ml/data/data_no_outliers/'
-fnames = ['data_no_outliers_0-5.h5', 'data_no_outliers_1-5.h5', 'data_no_outliers_2-5.h5', 'data_no_outliers_3-5.h5', 'data_no_outliers_4-5.h5']
+path_h5 = '/dataset'
+fnames = ['data_0-5.h5', 'data_1-5.h5', 'data_2-5.h5', 'data_3-5.h5', 'data_4-5.h5']
 
 all_tiles = []
 # Iterate over all the h5 files
@@ -47,14 +47,7 @@ data['val'].extend(val_tile)
 data['test'].extend(test_tile)
 data['train'].extend(train_tiles)
 
-# print("training tiles: ", len(data['train']))
-# print(data['train'])
-# print("validation tiles: ", len(data['val']))
-# print(data['val'])
-# print("testing tiles: ", len(data['test']))
-# print(data['test'])
-# Pickle the DataFrame and save it to a file
-with open('/scratch2/biomass_estimation/code/ml/data/mapping.pkl', 'wb') as f:
+with open('dataset/mapping.pkl', 'wb') as f:
     pickle.dump(data, f)
 
 ###################################################
@@ -120,13 +113,13 @@ if torch.cuda.is_available():
 optimizer = args.optimizer(model.parameters(), lr=args.lr)
 
 mode = 'train'
-ds_training = GEDIDataset({'h5':'/scratch2/biomass_estimation/code/ml/data/data_no_outliers/', 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+ds_training = GEDIDataset({'h5':'dataset', 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
 trainloader = DataLoader(dataset = ds_training, batch_size = 512, shuffle = True, num_workers = 8)
 mode = 'val'
-ds_validation = GEDIDataset({'h5':'/scratch2/biomass_estimation/code/ml/data/data_no_outliers/', 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+ds_validation = GEDIDataset({'h5':'dataset', 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
 validloader = DataLoader(dataset = ds_validation, batch_size = 512, shuffle = False, num_workers = 8)
 mode = 'test'
-ds_testing = GEDIDataset({'h5':'/scratch2/biomass_estimation/code/ml/data/data_no_outliers', 'norm': '/scratch2/biomass_estimation/code/ml/data', 'map': '/scratch2/biomass_estimation/code/ml/data/'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
+ds_testing = GEDIDataset({'h5':'dataset', 'norm': 'dataset', 'map': 'dataset'}, fnames = fnames, chunk_size = 1, mode = mode, args = args)
 testloader = DataLoader(dataset = ds_testing, batch_size = 256, shuffle = False, num_workers = 8)
 
 # 
@@ -171,7 +164,7 @@ for epoch in range(args.epochs):  # 100 epochs
         print(f'Validation Loss Decreased({min_valid_loss}--->{valid_loss}) Saving The Model')
         min_valid_loss = valid_loss
         # Saving State Dict
-        torch.save(model.state_dict(), f'/scratch2/biomass_estimation/code/ml/models/{args.name}_{args.epochs}Epochs_LR{args.lr}_{args.optimizer.__name__}_seed{args.seed}.pth')
+        torch.save(model.state_dict(), f'models/{args.name}_{args.epochs}Epochs_LR{args.lr}_{args.optimizer.__name__}_seed{args.seed}.pth')
 
     # Testing loop
     test_loss = 0.0
@@ -191,5 +184,5 @@ for epoch in range(args.epochs):  # 100 epochs
 
     print(f'Epoch {epoch+1} Training Loss: {train_loss / len(trainloader)} Validation Loss: {valid_loss / len(validloader)} Testing Loss: {test_loss / len(testloader)}')
 
-torch.save(model.state_dict(), f'/scratch2/biomass_estimation/code/ml/models/{args.name}_{args.epochs}Epochs_LR{args.lr}_{args.optimizer.__name__}_seed{args.seed}_final.pth')
+torch.save(model.state_dict(), f'models/{args.name}_{args.epochs}Epochs_LR{args.lr}_{args.optimizer.__name__}_seed{args.seed}_final.pth')
 wandb.finish()
