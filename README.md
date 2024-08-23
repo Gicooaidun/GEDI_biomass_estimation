@@ -12,3 +12,9 @@ For more information on the individual steps, refer to the READMEs in the folder
 
 ### Additional notes:
 In this project the variable 'bm' refers to ICESat-2 biomass.
+
+To pip install the necessary libraries you can use the following command (in the case of version issues please refer to `requirements.txt`)
+
+```
+pip install geopandas pandas numpy csvkit rasterio scikit-image scipy torch h5py scikit-learn matplotlib affine pyproj opencv-python wandb
+```
