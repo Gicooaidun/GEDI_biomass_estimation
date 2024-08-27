@@ -11,7 +11,7 @@ This script generates a text file (`tile_names.txt`) containing the filenames of
 This script is responsible for creating the dataset used by the machine learning pipeline. It groups the ICESat and Sentinel-2 data around a GEDI point and generates square patches.
 
 ### [`helper_patches.py`](./helper_patches.py)
-This script contains helper functions for `create_patches.py`.
+This script contains helper functions for [`create_patches.py`](./create_patches.py).
 
 ## How to Use
 
