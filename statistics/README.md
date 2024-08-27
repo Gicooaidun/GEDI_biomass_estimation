@@ -13,4 +13,4 @@ This notebook compares the ICESat AGB to the latitude to check if there is a tre
 ## Other Notes
 
 - The first cell in these notebooks reads the GEDI shapefile, which on our machine can take over 45 minutes.
-- CSV files are created for the different tiles to avoid repeating the loading procedures if the user requires a different analysis of the data. These interim results are saved in the `comparisons_bins` folder (empty in this GitHub repo).
+- CSV files are created for the different tiles to avoid repeating the loading procedures if the user requires a different analysis of the data. These interim results are saved in the [`comparisons_bins`](comparisons_bins) folder (empty in this GitHub repo).
