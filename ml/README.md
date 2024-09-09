@@ -32,6 +32,20 @@ This script is used to train an ensemble of ML models on the dataset. It creates
 ## Results
 We tried different variations of a Fully Convolutional Network (defined in the [`train.py`](./train.py) file). In this WandB project the runs are logged: [code-ml-better_logging](https://wandb.ai/dose/code-ml-better_logging?nw=nwuserdsenti).
 
+### Key Graphs
+
+The most relevant graphs to focus on are:
+- **total_train_loss**
+- **total_valid_loss**
+- **total_test_loss**
+
+These graphs display the average loss for an entire epoch, providing a more meaningful insight into the model's performance. The other graphs represent the loss per batch, which is less informative in this context.
+
+### Notable Observation: Double Descent
+
+An interesting phenomenon occurs in the "huge" model (among others), where a **double descent** is visible. After reaching an initial peak, the validation and test loss begin to decrease again. This suggests that further improvements might be achieved with an even larger model, trained for more epochs.
+
+
 ### Run Naming Conventions
 
 The naming format of each run shows changes in the model's setup and training configuration. Each part of the name corresponds to a hyperparameter:
